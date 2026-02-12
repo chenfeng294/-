@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情绪化饮食推荐器</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- 统一的 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4A89DC',
+                        secondary: '#F5A623',
+                        success: '#7ED321',
+                        danger: '#FF5A5A',
+                        info: '#5ADBFF',
+                        calm: '#60B5CC',
+                        joy: '#FFD166',
+                        tired: '#FF9F1C',
+                        lonely: '#FF6B6B',
+                        irritable: '#97DFFC',
+                        light: '#F7F9FC',
+                        dark: '#2D3748',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-in-out',
+                        'slide-down': 'slideDown 0.5s ease-in-out',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'bounce-slow': 'bounce 3s infinite',
+                        'shimmer': 'shimmer 2s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideDown: {
+                            '0%': { transform: 'translateY(-20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '100% 0' },
+                            '100%': { backgroundPosition: '-100% 0' },
+                        },
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'shimmer': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%)',
+                    },
+                }
+            },
+            darkMode: 'class',
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+            }
+            .btn-secondary {
+                @apply bg-white hover:bg-gray-100 text-primary font-medium py-2 px-6 rounded-full shadow-md transition-all duration-300 border border-primary transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+            }
+            .input-primary {
+                @apply bg-white border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300;
+            }
+            .card {
+                @apply bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg;
+            }
+            .emotion-card {
+                @apply rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer;
+            }
+            .emotion-card-active {
+                @apply ring-4 ring-white ring-opacity-50 shadow-2xl;
+            }
+            .gradient-bg {
+                @apply bg-gradient-to-br;
+            }
+            .shimmer-effect {
+                @apply bg-shimmer bg-repeat-x;
+                background-size: 200% 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen font-sans">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed w-full top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-info flex items-center justify-center shadow-md">
+                    <i class="fa fa-cutlery text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold text-primary">情绪化饮食推荐器</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="btn-about" class="text-gray-600 hover:text-primary transition-all duration-300 flex items-center">
+                    <i class="fa fa-info-circle mr-1"></i>
+                    <span>关于</span>
+                </button>
+                <button id="btn-settings" class="text-gray-600 hover:text-primary transition-all duration-300 flex items-center">
+                    <i class="fa fa-cog mr-1"></i>
+                    <span>设置</span>
+                </button>
+                <button id="btn-profile" class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-info text-white flex items-center justify-center hover:opacity-90 transition-all duration-300 shadow-md">
+                    <i class="fa fa-user"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <main class="container mx-auto px-4 pt-20 pb-24">
+        <!-- 欢迎页面 -->
+        <section id="welcome-section" class="py-8 animate-fade-in">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="relative mb-12 mt-6">
+                    <div class="w-full h-64 rounded-3xl overflow-hidden shadow-xl">
+                        <div class="w-full h-full bg-gradient-to-r from-primary to-info flex items-center justify-center">
+                            <div class="text-center">
+                                <h2 class="text-4xl font-bold text-white mb-4 animate-float">情绪化饮食推荐器</h2>
+                                <p class="text-xl text-white/90">探索情绪与食物的科学关联</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+                    我们将根据您的情绪状态，运用科学算法为您推荐合适的食物，帮助您更好地调节情绪，保持健康。
+                </p>
+                
+                <div class="card p-6 mb-8 max-w-2xl mx-auto">
+                    <h3 class="text-xl font-semibold text-primary mb-6">如何使用</h3>
+                    <div class="flex flex-col md:flex-row justify-between items-center">
+                        <div class="flex flex-col items-center mb-6 md:mb-0 md:mr-4">
+                            <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                                <i class="fa fa-smile-o text-primary text-3xl"></i>
+                            </div>
+                            <p class="text-gray-700">选择您的情绪</p>
+                        </div>
+                        <div class="text-gray-400 hidden md:block">
+                            <i class="fa fa-arrow-right text-xl"></i>
+                        </div>
+                        <div class="text-gray-400 block md:hidden">
+                            <i class="fa fa-arrow-down text-xl"></i>
+                        </div>
+                        <div class="flex flex-col items-center mb-6 md:mb-0 md:mx-4">
+                            <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                                <i class="fa fa-cutlery text-primary text-3xl"></i>
+                            </div>
+                            <p class="text-gray-700">获取食物推荐</p>
+                        </div>
+                        <div class="text-gray-400 hidden md:block">
+                            <i class="fa fa-arrow-right text-xl"></i>
+                        </div>
+                        <div class="text-gray-400 block md:hidden">
+                            <i class="fa fa-arrow-down text-xl"></i>
+                        </div>
+                        <div class="flex flex-col items-center md:ml-4">
+                            <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                                <i class="fa fa-shopping-cart text-primary text-3xl"></i>
+                            </div>
+                            <p class="text-gray-700">生成采购清单</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="start-btn" class="btn-primary text-lg animate-bounce-slow">
+                    开始使用
+                </button>
+            </div>
+        </section>
+
+        <!-- 情绪选择页面 -->
+        <section id="emotion-selection" class="py-8 hidden animate-fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center mb-8">
+                    <button id="back-to-welcome" class="mr-3 text-gray-600 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-arrow-left text-xl"></i>
+                    </button>
+                    <h2 class="text-3xl font-bold text-primary">选择您当前的情绪</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 焦虑情绪 -->
+                    <div class="emotion-card gradient-bg from-calm to-info" data-emotion="anxious">
+                        <div class="relative h-48 flex items-center justify-center">
+                            <img src="https://p3-doubao-search-sign.byteimg.com/labis/e2f0fb6ca788fe3dd29e1fa358872212~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1779009710&x-signature=CkB%2BQ8pS0ZciRgU26rS9rE8DxCc%3D" 
+                                 alt="焦虑" 
+                                 class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-calm/70 to-info/50"></div>
+                            <h3 class="text-white text-3xl font-bold text-shadow z-10">焦虑</h3>
+                        </div>
+                        <div class="p-5 bg-white">
+                            <p class="text-gray-600 text-sm mb-4">感到紧张、不安或担忧？</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">推荐：富含镁和维生素C的食物</span>
+                                <i class="fa fa-chevron-right text-calm"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 庆祝情绪 -->
+                    <div class="emotion-card gradient-bg from-joy to-secondary" data-emotion="celebrating">
+                        <div class="relative h-48 flex items-center justify-center">
+                            <img src="https://p3-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/2165470155069587483~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1779009710&x-signature=hFqePWyWBSvqUceIfmN44O62y80%3D" 
+                                 alt="庆祝" 
+                                 class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-joy/70 to-secondary/50"></div>
+                            <h3 class="text-white text-3xl font-bold text-shadow z-10">庆祝</h3>
+                        </div>
+                        <div class="p-5 bg-white">
+                            <p class="text-gray-600 text-sm mb-4">感到开心、兴奋或成就满满？</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">推荐：低GI高糖分的水果和甜点</span>
+                                <i class="fa fa-chevron-right text-joy"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 疲惫情绪 -->
+                    <div class="emotion-card gradient-bg from-tired to-secondary" data-emotion="tired">
+                        <div class="relative h-48 flex items-center justify-center">
+                            <img src="https://p3-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/956922364436676617~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1779009710&x-signature=cOCwkHvqH%2FcV3WwtqadCPxnz7fc%3D" 
+                                 alt="疲惫" 
+                                 class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-tired/70 to-secondary/50"></div>
+                            <h3 class="text-white text-3xl font-bold text-shadow z-10">疲惫</h3>
+                        </div>
+                        <div class="p-5 bg-white">
+                            <p class="text-gray-600 text-sm mb-4">感到疲倦、乏力或精神不济？</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">推荐：富含维生素B和蛋白质的食物</span>
+                                <i class="fa fa-chevron-right text-tired"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 孤独情绪 -->
+                    <div class="emotion-card gradient-bg from-lonely to-danger" data-emotion="lonely">
+                        <div class="relative h-48 flex items-center justify-center">
+                            <img src="https://p11-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1066589535273746507~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1779009710&x-signature=gbqVMe3y84eXSE1yeSZbmo3dBOQ%3D" 
+                                 alt="孤独" 
+                                 class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-lonely/70 to-danger/50"></div>
+                            <h3 class="text-white text-3xl font-bold text-shadow z-10">孤独</h3>
+                        </div>
+                        <div class="p-5 bg-white">
+                            <p class="text-gray-600 text-sm mb-4">感到孤单、失落或缺乏陪伴？</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">推荐：温暖、舒适的食物</span>
+                                <i class="fa fa-chevron-right text-lonely"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 烦躁情绪 -->
+                    <div class="emotion-card gradient-bg from-irritable to-info" data-emotion="irritable">
+                        <div class="relative h-48 flex items-center justify-center">
+                            <img src="https://p3-doubao-search-sign.byteimg.com/labis/image/7fd05ba1c065f10f5515660f179f19be~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1779009710&x-signature=cCkfjGSH4vcBpjzNyznWloeiYZc%3D" 
+                                 alt="烦躁" 
+                                 class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-irritable/70 to-info/50"></div>
+                            <h3 class="text-white text-3xl font-bold text-shadow z-10">烦躁</h3>
+                        </div>
+                        <div class="p-5 bg-white">
+                            <p class="text-gray-600 text-sm mb-4">感到易怒、不耐烦或心情不佳？</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">推荐：富含锌和Omega-3的食物</span>
+                                <i class="fa fa-chevron-right text-irritable"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 自定义情绪 -->
+                    <div class="emotion-card border-2 border-dashed border-gray-300 flex flex-col">
+                        <div class="h-48 flex items-center justify-center bg-gray-50 rounded-t-2xl">
+                            <div class="text-center">
+                                <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                                    <i class="fa fa-plus-circle text-primary text-3xl"></i>
+                                </div>
+                                <h3 class="text-gray-600 font-medium">自定义情绪</h3>
+                            </div>
+                        </div>
+                        <div class="p-5 bg-white rounded-b-2xl">
+                            <p class="text-gray-600 text-sm mb-4">没有找到符合您当前心情的选项？</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">创建您自己的情绪标签</span>
+                                <i class="fa fa-chevron-right text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 card p-6">
+                    <h3 class="text-xl font-semibold text-primary mb-4">或者，描述您的感受</h3>
+                    <div class="flex flex-col md:flex-row">
+                        <textarea id="emotion-description" class="flex-1 input-primary mb-4 md:mb-0 md:mr-4" rows="3" placeholder="例如：今天上班被批评了，感觉很委屈，还很饿..."></textarea>
+                        <button id="analyze-emotion" class="btn-primary flex items-center justify-center whitespace-nowrap">
+                            <i class="fa fa-paper-plane text-xl mr-2"></i>
+                            分析情绪
+                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <button id="voice-input" class="flex items-center text-gray-600 hover:text-primary transition-all duration-300">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+                                <i class="fa fa-microphone text-primary"></i>
+                            </div>
+                            <span>语音输入</span>
+                        </button>
+                        <div class="ml-auto text-xs text-gray-500">
+                            <i class="fa fa-info-circle mr-1"></i>
+                            <span>我们的AI将分析您的情绪并推荐合适的食物</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 食谱推荐页面 -->
+        <section id="recipe-recommendation" class="py-8 hidden animate-fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center mb-8">
+                    <button id="back-to-emotions" class="mr-3 text-gray-600 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-arrow-left text-xl"></i>
+                    </button>
+                    <h2 class="text-3xl font-bold text-primary">
+                        <span id="selected-emotion">焦虑</span>时推荐的食物
+                    </h2>
+                </div>
+                
+                <div class="card p-6 mb-8">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">为什么这些食物适合您</h3>
+                            <p id="emotion-explanation" class="text-gray-600">
+                                焦虑时，推荐富含镁和维生素C的食物。镁元素有助于缓解神经紧张，维生素C则能促进皮质醇代谢，帮助平复情绪。
+                            </p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span id="emotion-tag" class="inline-block px-4 py-2 rounded-full text-sm font-medium bg-calm/10 text-calm">
+                                焦虑
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-800 mb-3">推荐营养素</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-3 py-1 bg-calm/10 text-calm text-xs rounded-full">镁</span>
+                                <span class="px-3 py-1 bg-calm/10 text-calm text-xs rounded-full">维生素C</span>
+                                <span class="px-3 py-1 bg-calm/10 text-calm text-xs rounded-full">GABA</span>
+                                <span class="px-3 py-1 bg-calm/10 text-calm text-xs rounded-full">色氨酸</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-800 mb-3">建议避免</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-3 py-1 bg-danger/10 text-danger text-xs rounded-full">咖啡因</span>
+                                <span class="px-3 py-1 bg-danger/10 text-danger text-xs rounded-full">高糖食物</span>
+                                <span class="px-3 py-1 bg-danger/10 text-danger text-xs rounded-full">加工食品</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 食谱列表 -->
+                <div class="space-y-6 mb-8">
+                    <!-- 食谱1 -->
+                    <div class="card card-hover">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="md:w-1/3 relative rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none overflow-hidden">
+                                <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/c03f89bbf6a148b1a9b9703e9bb8ed8b~tplv-a9rns2rl98-image.image?rcl=2025111816382756E3C93E01FE671908AF&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1766047143&x-signature=63mq2rjRsFHTWJSpvYpG0nWTLDc%3D" 
+                                     alt="香蕉燕麦奶昔" 
+                                     class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                                <div class="absolute top-3 right-3 bg-white rounded-full px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
+                                    <i class="fa fa-clock-o mr-1"></i>5分钟
+                                </div>
+                            </div>
+                            <div class="md:w-2/3 p-6">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="text-xl font-bold text-gray-800">香蕉燕麦奶昔</h3>
+                                    <div class="flex items-center bg-gray-100 px-2 py-1 rounded-lg">
+                                        <i class="fa fa-star text-yellow-400"></i>
+                                        <span class="ml-1 text-gray-700">4.8</span>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-4">
+                                    这款奶昔富含镁元素和维生素B，有助于缓解焦虑情绪，同时提供持久能量。香蕉中的色氨酸还能帮助身体产生血清素，改善心情。
+                                </p>
+                                <div class="flex flex-wrap gap-2 mb-6">
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">低GI</span>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">无麸质</span>
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">素食</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center text-gray-500">
+                                        <i class="fa fa-cutlery mr-1"></i>
+                                        <span class="text-sm">简单易做</span>
+                                    </div>
+                                    <button class="view-recipe btn-primary text-sm" data-recipe="recipe1">
+                                        查看食谱
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 食谱2 -->
+                    <div class="card card-hover">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="md:w-1/3 relative rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none overflow-hidden">
+                                <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d40a12cb78534a08ab22b4368a45f447~tplv-a9rns2rl98-image.image?rcl=2025111816382756E3C93E01FE671908AF&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1766047143&x-signature=GQSbFUyW1OWOhrYmJJWmpcgtlEo%3D" 
+                                     alt="南瓜粥" 
+                                     class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                                <div class="absolute top-3 right-3 bg-white rounded-full px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
+                                    <i class="fa fa-clock-o mr-1"></i>20分钟
+                                </div>
+                            </div>
+                            <div class="md:w-2/3 p-6">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="text-xl font-bold text-gray-800">南瓜粥</h3>
+                                    <div class="flex items-center bg-gray-100 px-2 py-1 rounded-lg">
+                                        <i class="fa fa-star text-yellow-400"></i>
+                                        <span class="ml-1 text-gray-700">4.6</span>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-4">
+                                    南瓜富含钾和维生素A，有助于放松神经和降低血压。温热的粥品能带来舒适感，缓解焦虑情绪。搭配少量肉桂，更能提升心情。
+                                </p>
+                                <div class="flex flex-wrap gap-2 mb-6">
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">温暖舒适</span>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">无麸质</span>
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">素食</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center text-gray-500">
+                                        <i class="fa fa-cutlery mr-1"></i>
+                                        <span class="text-sm">简单易做</span>
+                                    </div>
+                                    <button class="view-recipe btn-primary text-sm" data-recipe="recipe2">
+                                        查看食谱
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 食谱3 -->
+                    <div class="card card-hover">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="md:w-1/3 relative rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none overflow-hidden">
+                                <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/e340ef35fa934199be25964306661437~tplv-a9rns2rl98-image.image?rcl=2025111816382756E3C93E01FE671908AF&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1766047144&x-signature=r4tKKx59Em%2FpIVFSayJB5CJ31eI%3D" 
+                                     alt="彩虹沙拉" 
+                                     class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                                <div class="absolute top-3 right-3 bg-white rounded-full px-3 py-1 text-sm font-medium text-gray-700 shadow-sm">
+                                    <i class="fa fa-clock-o mr-1"></i>15分钟
+                                </div>
+                            </div>
+                            <div class="md:w-2/3 p-6">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="text-xl font-bold text-gray-800">彩虹沙拉</h3>
+                                    <div class="flex items-center bg-gray-100 px-2 py-1 rounded-lg">
+                                        <i class="fa fa-star text-yellow-400"></i>
+                                        <span class="ml-1 text-gray-700">4.5</span>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-4">
+                                    这款沙拉富含多种维生素和矿物质，特别是维生素C和镁。多彩的蔬果能提升视觉愉悦感，同时提供丰富的抗氧化剂，帮助缓解压力。
+                                </p>
+                                <div class="flex flex-wrap gap-2 mb-6">
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">低卡路里</span>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">无麸质</span>
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">素食</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center text-gray-500">
+                                        <i class="fa fa-cutlery mr-1"></i>
+                                        <span class="text-sm">简单易做</span>
+                                    </div>
+                                    <button class="view-recipe btn-primary text-sm" data-recipe="recipe3">
+                                        查看食谱
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row justify-between gap-4">
+                    <button id="generate-more-recipes" class="btn-secondary flex items-center justify-center">
+                        <i class="fa fa-refresh mr-2"></i>
+                        生成更多食谱
+                    </button>
+                    <button id="generate-shopping-list" class="btn-primary flex items-center justify-center">
+                        <i class="fa fa-shopping-cart mr-2"></i>
+                        生成采购清单
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 食谱详情弹窗 -->
+        <div id="recipe-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 id="modal-recipe-title" class="text-2xl font-bold text-gray-800">香蕉燕麦奶昔</h3>
+                        <button id="close-recipe-modal" class="text-gray-500 hover:text-gray-700 transition-all duration-300">
+                            <i class="fa fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-8 rounded-xl overflow-hidden">
+                        <img id="modal-recipe-image" src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/c03f89bbf6a148b1a9b9703e9bb8ed8b~tplv-a9rns2rl98-image.image?rcl=2025111816382756E3C93E01FE671908AF&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1766047143&x-signature=63mq2rjRsFHTWJSpvYpG0nWTLDc%3D" 
+                             alt="香蕉燕麦奶昔" 
+                             class="w-full h-64 object-cover transition-transform duration-500 hover:scale-105">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                                <i class="fa fa-clock-o text-primary text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-1">准备时间</h4>
+                            <p class="text-gray-600">5分钟</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                                <i class="fa fa-fire text-primary text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-1">热量</h4>
+                            <p class="text-gray-600">320卡路里</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                                <i class="fa fa-balance-scale text-primary text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-1">难度</h4>
+                            <p class="text-gray-600">简单</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h4 class="text-xl font-semibold text-primary mb-4">食材</h4>
+                        <div class="bg-gray-50 rounded-lg p-5">
+                            <ul id="modal-recipe-ingredients" class="list-disc list-inside space-y-3 text-gray-600">
+                                <li class="flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                    1根香蕉（约120g）
+                                </li>
+                                <li class="flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                    50g燕麦片
+                                </li>
+                                <li class="flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                    200ml杏仁奶
+                                </li>
+                                <li class="flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                    10g奇亚籽
+                                </li>
+                                <li class="flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                    5g蜂蜜（可选）
+                                </li>
+                                <li class="flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                    少量肉桂粉
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h4 class="text-xl font-semibold text-primary mb-4">制作步骤</h4>
+                        <div class="bg-gray-50 rounded-lg p-5">
+                            <ol id="modal-recipe-steps" class="space-y-4 text-gray-600">
+                                <li class="flex">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                        <span class="text-primary font-medium">1</span>
+                                    </div>
+                                    <p>将香蕉去皮切片，放入搅拌机中。</p>
+                                </li>
+                                <li class="flex">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                        <span class="text-primary font-medium">2</span>
+                                    </div>
+                                    <p>加入燕麦片、杏仁奶、奇亚籽和蜂蜜（如果使用）。</p>
+                                </li>
+                                <li class="flex">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                        <span class="text-primary font-medium">3</span>
+                                    </div>
+                                    <p>搅拌均匀，直到顺滑。</p>
+                                </li>
+                                <li class="flex">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                        <span class="text-primary font-medium">4</span>
+                                    </div>
+                                    <p>倒入玻璃杯中，撒上少量肉桂粉装饰。</p>
+                                </li>
+                                <li class="flex">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                                        <span class="text-primary font-medium">5</span>
+                                    </div>
+                                    <p>立即享用或放入冰箱冷藏30分钟后享用。</p>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h4 class="text-xl font-semibold text-primary mb-4">营养价值</h4>
+                        <div class="bg-gray-50 rounded-lg p-5">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">镁</span>
+                                        <span class="font-medium text-gray-800">45mg</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3">
+                                        <div class="bg-gradient-to-r from-primary to-info h-3 rounded-full" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">维生素C</span>
+                                        <span class="font-medium text-gray-800">12mg</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3">
+                                        <div class="bg-gradient-to-r from-primary to-info h-3 rounded-full" style="width: 40%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">膳食纤维</span>
+                                        <span class="font-medium text-gray-800">6g</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3">
+                                        <div class="bg-gradient-to-r from-primary to-info h-3 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">蛋白质</span>
+                                        <span class="font-medium text-gray-800">8g</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3">
+                                        <div class="bg-gradient-to-r from-primary to-info h-3 rounded-full" style="width: 30%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h4 class="text-xl font-semibold text-primary mb-4">情绪调节功效</h4>
+                        <div class="bg-gray-50 rounded-lg p-5">
+                            <p id="modal-recipe-benefits" class="text-gray-600 leading-relaxed">
+                                这款香蕉燕麦奶昔富含镁元素，有助于放松神经肌肉，缓解焦虑症状。燕麦中的复合碳水化合物能稳定血糖，避免情绪波动。香蕉中的色氨酸是血清素的前体物质，有助于提升心情。杏仁奶中的维生素E和奇亚籽中的Omega-3脂肪酸也有助于减轻炎症反应，改善情绪状态。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row justify-between gap-4">
+                        <button id="add-to-favorites" class="btn-secondary flex items-center justify-center">
+                            <i class="fa fa-heart-o mr-2"></i>
+                            收藏食谱
+                        </button>
+                        <button id="add-to-shopping-list" class="btn-primary flex items-center justify-center">
+                            <i class="fa fa-plus mr-2"></i>
+                            添加到采购清单
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 采购清单页面 -->
+        <section id="shopping-list" class="py-8 hidden animate-fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center mb-8">
+                    <button id="back-to-recipes" class="mr-3 text-gray-600 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-arrow-left text-xl"></i>
+                    </button>
+                    <h2 class="text-3xl font-bold text-primary">采购清单</h2>
+                </div>
+                
+                <div class="card p-6 mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800">为<span id="shopping-emotion" class="text-primary">焦虑</span>情绪准备的食材</h3>
+                        <div class="flex space-x-3">
+                            <button id="edit-shopping-list" class="text-gray-600 hover:text-primary transition-all duration-300 p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button id="share-shopping-list" class="text-gray-600 hover:text-primary transition-all duration-300 p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fa fa-share-alt"></i>
+                            </button>
+                            <button id="export-shopping-list" class="text-gray-600 hover:text-primary transition-all duration-300 p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fa fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm text-gray-600">选择超市</span>
+                            <span class="text-xs text-gray-500">选择后可获得更精准的商品位置信息</span>
+                        </div>
+                        <select id="supermarket-select" class="input-primary w-full">
+                            <option value="default">默认超市</option>
+                            <option value="walmart">沃尔玛</option>
+                            <option value="carrefour">家乐福</option>
+                            <option value="freshmart">永辉超市</option>
+                            <option value="himart">盒马鲜生</option>
+                        </select>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- 水果类 -->
+                        <div class="shopping-category">
+                            <h4 class="font-medium text-gray-800 mb-4 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-2">
+                                    <i class="fa fa-apple text-red-500"></i>
+                                </div>
+                                水果类
+                            </h4>
+                            <ul class="space-y-3">
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">香蕉</p>
+                                            <p class="text-xs text-gray-500">1根（约120g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥2.50</p>
+                                        <p class="text-xs text-gray-500">水果区 A3货架</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">蓝莓</p>
+                                            <p class="text-xs text-gray-500">1盒（约100g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥12.90</p>
+                                        <p class="text-xs text-gray-500">水果区 B2货架</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">草莓</p>
+                                            <p class="text-xs text-gray-500">1盒（约150g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥9.90</p>
+                                        <p class="text-xs text-gray-500">水果区 B1货架</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 谷物类 -->
+                        <div class="shopping-category">
+                            <h4 class="font-medium text-gray-800 mb-4 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center mr-2">
+                                    <i class="fa fa-wheat text-yellow-500"></i>
+                                </div>
+                                谷物类
+                            </h4>
+                            <ul class="space-y-3">
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">燕麦片</p>
+                                            <p class="text-xs text-gray-500">1包（约500g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥19.90</p>
+                                        <p class="text-xs text-gray-500">谷物区 C5货架</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">奇亚籽</p>
+                                            <p class="text-xs text-gray-500">1瓶（约100g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥29.90</p>
+                                        <p class="text-xs text-gray-500">健康食品区 D2货架</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 乳制品 -->
+                        <div class="shopping-category">
+                            <h4 class="font-medium text-gray-800 mb-4 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                                    <i class="fa fa-glass text-blue-500"></i>
+                                </div>
+                                乳制品
+                            </h4>
+                            <ul class="space-y-3">
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">杏仁奶</p>
+                                            <p class="text-xs text-gray-500">1盒（约1L）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥15.90</p>
+                                        <p class="text-xs text-gray-500">乳制品区 E3货架</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- 调味品 -->
+                        <div class="shopping-category">
+                            <h4 class="font-medium text-gray-800 mb-4 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mr-2">
+                                    <i class="fa fa-mortar-board text-gray-500"></i>
+                                </div>
+                                调味品
+                            </h4>
+                            <ul class="space-y-3">
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">肉桂粉</p>
+                                            <p class="text-xs text-gray-500">1瓶（约30g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥8.90</p>
+                                        <p class="text-xs text-gray-500">调味品区 F1货架</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-5 w-5 text-primary rounded mr-3">
+                                        <div>
+                                            <p class="text-gray-800">蜂蜜</p>
+                                            <p class="text-xs text-gray-500">1瓶（约250g）</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-800">¥25.90</p>
+                                        <p class="text-xs text-gray-500">调味品区 F4货架</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-sm text-gray-600">总计：<span class="font-medium text-gray-800">125.60元</span></p>
+                                <p class="text-xs text-gray-500">共10件商品</p>
+                            </div>
+                            <button id="start-shopping" class="btn-primary">
+                                开始购物
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-primary mb-4">购物小贴士</h3>
+                    <div class="space-y-4 text-gray-600">
+                        <p class="flex items-start">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <i class="fa fa-check-circle text-green-500"></i>
+                            </div>
+                            <span>优先选择当季新鲜水果，营养价值更高。</span>
+                        </p>
+                        <p class="flex items-start">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <i class="fa fa-check-circle text-green-500"></i>
+                            </div>
+                            <span>燕麦片建议选择原味、无添加糖的产品。</span>
+                        </p>
+                        <p class="flex items-start">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <i class="fa fa-check-circle text-green-500"></i>
+                            </div>
+                            <span>杏仁奶可根据个人口味选择无糖或低糖版本。</span>
+                        </p>
+                        <p class="flex items-start">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <i class="fa fa-check-circle text-green-500"></i>
+                            </div>
+                            <span>奇亚籽开封后请密封保存，以防受潮。</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 情绪日记页面 -->
+        <section id="emotion-diary" class="py-8 hidden animate-fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center mb-8">
+                    <button id="back-to-shopping" class="mr-3 text-gray-600 hover:text-primary transition-all duration-300">
+                        <i class="fa fa-arrow-left text-xl"></i>
+                    </button>
+                    <h2 class="text-3xl font-bold text-primary">情绪日记</h2>
+                </div>
+                
+                <div class="card p-6 mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-6">今日情绪记录</h3>
+                    <div class="mb-8">
+                        <label class="block text-gray-600 mb-3">您今天的主要情绪是？</label>
+                        <div class="flex flex-wrap gap-4">
+                            <button class="emotion-btn px-5 py-3 rounded-full text-sm font-medium bg-calm/10 text-calm hover:bg-calm hover:text-white transition-all duration-300">
+                                焦虑
+                            </button>
+                            <button class="emotion-btn px-5 py-3 rounded-full text-sm font-medium bg-joy/10 text-joy hover:bg-joy hover:text-white transition-all duration-300">
+                                开心
+                            </button>
+                            <button class="emotion-btn px-5 py-3 rounded-full text-sm font-medium bg-tired/10 text-tired hover:bg-tired hover:text-white transition-all duration-300">
+                                疲惫
+                            </button>
+                            <button class="emotion-btn px-5 py-3 rounded-full text-sm font-medium bg-lonely/10 text-lonely hover:bg-lonely hover:text-white transition-all duration-300">
+                                孤独
+                            </button>
+                            <button class="emotion-btn px-5 py-3 rounded-full text-sm font-medium bg-irritable/10 text-irritable hover:bg-irritable hover:text-white transition-all duration-300">
+                                烦躁
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <label for="emotion-intensity" class="block text-gray-600 mb-3">情绪强度</label>
+                        <input type="range" id="emotion-intensity" min="1" max="10" value="5" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-gray-500 mt-2">
+                            <span>轻微</span>
+                            <span>中等</span>
+                            <span>强烈</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <label for="emotion-note" class="block text-gray-600 mb-3">记录一下您的感受</label>
+                        <textarea id="emotion-note" class="input-primary w-full" rows="4" placeholder="今天我感到..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button id="save-diary" class="btn-primary flex items-center">
+                            <i class="fa fa-save mr-2"></i>
+                            保存记录
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold text-primary mb-6">情绪趋势</h3>
+                    <div class="h-80 bg-gray-50 rounded-xl p-4">
+                        <canvas id="emotion-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部导航栏 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white shadow-lg z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-around">
+                <button class="nav-btn flex flex-col items-center py-3 px-6 text-primary relative" data-target="emotion-selection">
+                    <div class="absolute -top-2 w-10 h-1 bg-primary rounded-full"></div>
+                    <i class="fa fa-smile-o text-xl"></i>
+                    <span class="text-xs mt-1">情绪选择</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-3 px-6 text-gray-500 hover:text-primary transition-all duration-300 relative" data-target="recipe-recommendation">
+                    <i class="fa fa-cutlery text-xl"></i>
+                    <span class="text-xs mt-1">食谱推荐</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-3 px-6 text-gray-500 hover:text-primary transition-all duration-300 relative" data-target="shopping-list">
+                    <i class="fa fa-shopping-cart text-xl"></i>
+                    <span class="text-xs mt-1">采购清单</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center py-3 px-6 text-gray-500 hover:text-primary transition-all duration-300 relative" data-target="emotion-diary">
+                    <i class="fa fa-book text-xl"></i>
+                    <span class="text-xs mt-1">情绪日记</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 页面切换功能
+            const sections = {
+                'welcome-section': document.getElementById('welcome-section'),
+                'emotion-selection': document.getElementById('emotion-selection'),
+                'recipe-recommendation': document.getElementById('recipe-recommendation'),
+                'shopping-list': document.getElementById('shopping-list'),
+                'emotion-diary': document.getElementById('emotion-diary')
+            };
+            
+            const navButtons = document.querySelectorAll('.nav-btn');
+            
+            function showSection(sectionId) {
+                // 隐藏所有页面
+                Object.values(sections).forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                // 显示目标页面
+                sections[sectionId].classList.remove('hidden');
+                
+                // 更新底部导航按钮状态
+                navButtons.forEach(btn => {
+                    if (btn.dataset.target === sectionId) {
+                        btn.classList.add('text-primary');
+                        btn.classList.remove('text-gray-500');
+                        // 添加顶部指示器
+                        const indicator = document.createElement('div');
+                        indicator.className = 'absolute -top-2 w-10 h-1 bg-primary rounded-full';
+                        // 先移除其他按钮的指示器
+                        navButtons.forEach(b => {
+                            const existingIndicator = b.querySelector('.absolute');
+                            if (existingIndicator && b !== btn) {
+                                existingIndicator.remove();
+                            }
+                        });
+                        // 如果当前按钮没有指示器，则添加
+                        if (!btn.querySelector('.absolute')) {
+                            btn.appendChild(indicator);
+                        }
+                    } else {
+                        btn.classList.remove('text-primary');
+                        btn.classList.add('text-gray-500');
+                    }
+                });
+            }
+            
+            // 绑定底部导航按钮点击事件
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showSection(this.dataset.target);
+                });
+            });
+            
+            // 欢迎页面开始按钮
+            document.getElementById('start-btn').addEventListener('click', function() {
+                showSection('emotion-selection');
+            });
+            
+            // 返回按钮
+            document.getElementById('back-to-welcome').addEventListener('click', function() {
+                showSection('welcome-section');
+            });
+            
+            document.getElementById('back-to-emotions').addEventListener('click', function() {
+                showSection('emotion-selection');
+            });
+            
+            document.getElementById('back-to-recipes').addEventListener('click', function() {
+                showSection('recipe-recommendation');
+            });
+            
+            document.getElementById('back-to-shopping').addEventListener('click', function() {
+                showSection('shopping-list');
+            });
+            
+            // 情绪卡片点击事件
+            const emotionCards = document.querySelectorAll('.emotion-card');
+            emotionCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const emotion = this.dataset.emotion;
+                    if (emotion === 'custom') {
+                        // 自定义情绪逻辑
+                        alert('自定义情绪功能即将上线');
+                        return;
+                    }
+                    
+                    // 更新食谱推荐页面的情绪信息
+                    document.getElementById('selected-emotion').textContent = this.querySelector('h3').textContent;
+                    document.getElementById('shopping-emotion').textContent = this.querySelector('h3').textContent;
+                    
+                    // 根据情绪更新推荐理由和标签样式
+                    const emotionExplanation = document.getElementById('emotion-explanation');
+                    const emotionTag = document.getElementById('emotion-tag');
+                    
+                    switch(emotion) {
+                        case 'anxious':
+                            emotionExplanation.textContent = '焦虑时，推荐富含镁和维生素C的食物。镁元素有助于缓解神经紧张，维生素C则能促进皮质醇代谢，帮助平复情绪。';
+                            emotionTag.className = 'inline-block px-3 py-1 rounded-full text-sm font-medium bg-calm/10 text-calm';
+                            emotionTag.textContent = '焦虑';
+                            break;
+                        case 'celebrating':
+                            emotionExplanation.textContent = '庆祝时，推荐低GI高糖分的水果和甜点。这些食物能带来愉悦感，同时避免血糖骤升骤降导致的情绪波动。';
+                            emotionTag.className = 'inline-block px-3 py-1 rounded-full text-sm font-medium bg-joy/10 text-joy';
+                            emotionTag.textContent = '庆祝';
+                            break;
+                        case 'tired':
+                            emotionExplanation.textContent = '疲惫时，推荐富含维生素B和蛋白质的食物。维生素B参与能量代谢，蛋白质能修复身体组织，帮助恢复体力和精神。';
+                            emotionTag.className = 'inline-block px-3 py-1 rounded-full text-sm font-medium bg-tired/10 text-tired';
+                            emotionTag.textContent = '疲惫';
+                            break;
+                        case 'lonely':
+                            emotionExplanation.textContent = '孤独时，推荐温暖、舒适的食物。温热的食物能带来安慰感，同时某些食物成分能促进大脑产生愉悦感，缓解孤独情绪。';
+                            emotionTag.className = 'inline-block px-3 py-1 rounded-full text-sm font-medium bg-lonely/10 text-lonely';
+                            emotionTag.textContent = '孤独';
+                            break;
+                        case 'irritable':
+                            emotionExplanation.textContent = '烦躁时，推荐富含锌和Omega-3的食物。锌元素有助于调节情绪稳定性，Omega-3脂肪酸则能减少炎症反应，缓解烦躁情绪。';
+                            emotionTag.className = 'inline-block px-3 py-1 rounded-full text-sm font-medium bg-irritable/10 text-irritable';
+                            emotionTag.textContent = '烦躁';
+                            break;
+                    }
+                    
+                    showSection('recipe-recommendation');
+                });
+            });
+            
+            // 食谱详情弹窗
+            const recipeModal = document.getElementById('recipe-modal');
+            const viewRecipeButtons = document.querySelectorAll('.view-recipe');
+            const closeRecipeModal = document.getElementById('close-recipe-modal');
+            
+            viewRecipeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const recipeId = this.dataset.recipe;
+                    // 根据食谱ID加载不同的食谱详情
+                    // 这里简化处理，使用相同的示例数据
+                    recipeModal.classList.remove('hidden');
+                });
+            });
+            
+            closeRecipeModal.addEventListener('click', function() {
+                recipeModal.classList.add('hidden');
+            });
+            
+            // 点击弹窗外部关闭弹窗
+            recipeModal.addEventListener('click', function(e) {
+                if (e.target === recipeModal) {
+                    recipeModal.classList.add('hidden');
+                }
+            });
+            
+            // 生成采购清单按钮
+            document.getElementById('generate-shopping-list').addEventListener('click', function() {
+                showSection('shopping-list');
+            });
+            
+            // 开始购物按钮
+            document.getElementById('start-shopping').addEventListener('click', function() {
+                alert('购物模式已开启，祝您购物愉快！');
+            });
+            
+            // 情绪日记相关功能
+            const emotionBtns = document.querySelectorAll('.emotion-btn');
+            emotionBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    emotionBtns.forEach(b => {
+                        b.classList.remove('bg-calm', 'bg-joy', 'bg-tired', 'bg-lonely', 'bg-irritable', 'text-white');
+                    });
+                    
+                    this.classList.add('bg-' + this.textContent.trim().toLowerCase(), 'text-white');
+                });
+            });
+            
+            // 保存日记按钮
+            document.getElementById('save-diary').addEventListener('click', function() {
+                const emotion = document.querySelector('.emotion-btn.bg-calm, .emotion-btn.bg-joy, .emotion-btn.bg-tired, .emotion-btn.bg-lonely, .emotion-btn.bg-irritable');
+                const intensity = document.getElementById('emotion-intensity').value;
+                const note = document.getElementById('emotion-note').value;
+                
+                if (!emotion) {
+                    alert('请选择您的情绪');
+                    return;
+                }
+                
+                alert('日记已保存！');
+                // 这里可以添加保存到本地存储或发送到服务器的逻辑
+                
+                // 更新情绪趋势图表
+                updateEmotionChart();
+            });
+            
+            // 初始化情绪趋势图表
+            function initEmotionChart() {
+                const ctx = document.getElementById('emotion-chart').getContext('2d');
+                
+                // 创建渐变背景
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(74, 137, 220, 0.3)');
+                gradient.addColorStop(1, 'rgba(74, 137, 220, 0.1)');
+                
+                window.emotionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '今天'],
+                        datasets: [{
+                            label: '情绪指数',
+                            data: [6, 5, 7, 4, 6, 8, 5],
+                            borderColor: '#4A89DC',
+                            backgroundColor: gradient,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#4A89DC',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointHoverBackgroundColor: '#4A89DC',
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 2,
+                            borderWidth: 2,
+                            borderJoinStyle: 'round',
+                            segment: {
+                                borderColor: ctx => {
+                                    const index = ctx.p0DataIndex;
+                                    const value = ctx.dataset.data[index];
+                                    return value < 5 ? '#FF5A5A' : '#4A89DC';
+                                }
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                            axis: 'x'
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: '#2D3748',
+                                    font: {
+                                        size: 14,
+                                        family: 'Inter, system-ui, sans-serif'
+                                    },
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                titleColor: '#2D3748',
+                                bodyColor: '#4A5568',
+                                borderColor: '#E2E8F0',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: true,
+                                boxPadding: 6,
+                                usePointStyle: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        let label = '情绪指数: ' + value;
+                                        
+                                        if (value <= 3) {
+                                            label += ' (低)';
+                                        } else if (value <= 7) {
+                                            label += ' (中)';
+                                        } else {
+                                            label += ' (高)';
+                                        }
+                                        
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(226, 232, 240, 0.5)'
+                                },
+                                ticks: {
+                                    color: '#718096',
+                                    font: {
+                                        size: 12,
+                                        family: 'Inter, system-ui, sans-serif'
+                                    },
+                                    padding: 10
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                max: 10,
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(226, 232, 240, 0.5)'
+                                },
+                                ticks: {
+                                    color: '#718096',
+                                    font: {
+                                        size: 12,
+                                        family: 'Inter, system-ui, sans-serif'
+                                    },
+                                    padding: 10,
+                                    stepSize: 2,
+                                    callback: function(value) {
+                                        if (value === 0) return '低';
+                                        if (value === 5) return '中';
+                                        if (value === 10) return '高';
+                                        return value;
+                                    }
+                                }
+                            }
+                        },
+                        animations: {
+                            tension: {
+                                duration: 1000,
+                                easing: 'linear',
+                                from: 0.8,
+                                to: 0.4,
+                                loop: false
+                            },
+                            points: {
+                                duration: 500,
+                                easing: 'easeOutQuad',
+                                from: {
+                                    opacity: 0,
+                                    radius: 0
+                                },
+                                to: {
+                                    opacity: 1,
+                                    radius: 4
+                                },
+                                loop: false
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 更新情绪趋势图表
+            function updateEmotionChart() {
+                const intensity = document.getElementById('emotion-intensity').value;
+                window.emotionChart.data.datasets[0].data[6] = intensity;
+                window.emotionChart.update();
+            }
+            
+            // 初始化图表
+            initEmotionChart();
+            
+            // 语音输入功能
+            document.getElementById('voice-input').addEventListener('click', function() {
+                alert('语音输入功能已启动，请说出您的感受...');
+                // 这里可以添加实际的语音识别逻辑
+            });
+            
+            // 分析情绪按钮
+            document.getElementById('analyze-emotion').addEventListener('click', function() {
+                const description = document.getElementById('emotion-description').value;
+                
+                if (!description) {
+                    alert('请描述您的感受');
+                    return;
+                }
+                
+                // 这里可以添加实际的情绪分析逻辑
+                // 简化处理，直接跳转到食谱推荐页面
+                alert('已分析您的情绪，为您推荐合适的食物');
+                showSection('recipe-recommendation');
+            });
+            
+            // 生成更多食谱按钮
+            document.getElementById('generate-more-recipes').addEventListener('click', function() {
+                alert('正在生成更多食谱，请稍候...');
+                // 这里可以添加实际的生成更多食谱的逻辑
+            });
+            
+            // 添加到收藏夹按钮
+            document.getElementById('add-to-favorites').addEventListener('click', function() {
+                alert('食谱已添加到收藏夹！');
+            });
+            
+            // 添加到采购清单按钮
+            document.getElementById('add-to-shopping-list').addEventListener('click', function() {
+                alert('食材已添加到采购清单！');
+            });
+            
+            // 超市选择功能
+            document.getElementById('supermarket-select').addEventListener('change', function() {
+                alert('已选择' + this.options[this.selectedIndex].text + '，商品位置信息已更新');
+                // 这里可以添加根据超市更新商品位置信息的逻辑
+            });
+            
+            // 编辑采购清单按钮
+            document.getElementById('edit-shopping-list').addEventListener('click', function() {
+                alert('编辑模式已开启');
+                // 这里可以添加编辑采购清单的逻辑
+            });
+            
+            // 分享采购清单按钮
+            document.getElementById('share-shopping-list').addEventListener('click', function() {
+                alert('采购清单已分享');
+                // 这里可以添加分享采购清单的逻辑
+            });
+            
+            // 导出采购清单按钮
+            document.getElementById('export-shopping-list').addEventListener('click', function() {
+                alert('采购清单已导出');
+                // 这里可以添加导出采购清单的逻辑
+            });
+            
+            // 关于按钮
+            document.getElementById('btn-about').addEventListener('click', function() {
+                alert('情绪化饮食推荐器 v1.0\n\n帮助您根据情绪状态选择合适的食物，调节情绪，保持健康。');
+            });
+            
+            // 设置按钮
+            document.getElementById('btn-settings').addEventListener('click', function() {
+                alert('设置功能即将上线');
+            });
+            
+            // 个人资料按钮
+            document.getElementById('btn-profile').addEventListener('click', function() {
+                alert('个人资料功能即将上线');
+            });
+        });
+    </script>
+</body>
+</html>
